@@ -1,0 +1,84 @@
+/* ============================================================
+   LogiTrace — print.css
+   Impresión de etiquetas logísticas.
+   No se imprimen sidebar, header, botones ni navegación.
+   ============================================================ */
+
+@media print {
+  @page { margin: 8mm; }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Oculta todo el chrome de la aplicación */
+  .sidebar,
+  .sidebar-scrim,
+  .header,
+  .view__actions,
+  .table-toolbar,
+  .pager,
+  .tabs,
+  .toast-stack,
+  .btn,
+  .filters,
+  .skip-link,
+  .no-print {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block !important;
+    min-height: auto !important;
+  }
+  .main { padding: 0 !important; max-width: none !important; }
+
+  /* Sólo se imprime el contenido marcado como imprimible */
+  body.printing-label .view,
+  body.printing-label .main > *:not(#printArea) { display: none !important; }
+
+  #printArea { display: block !important; }
+
+  .card, .kpi {
+    box-shadow: none !important;
+    border-color: #999 !important;
+    break-inside: avoid;
+  }
+
+  /* Etiqueta: tamaño estable y sin cortes */
+  .label-sheet {
+    border: 1px solid #000 !important;
+    border-radius: 0 !important;
+    max-width: 90mm !important;
+    padding: 6mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0 auto;
+  }
+  .label-sheet__meta { color: #000 !important; }
+
+  /* Varias etiquetas por hoja */
+  .label-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6mm;
+  }
+
+  /* Los mapas no se imprimen de forma fiable */
+  .map-canvas { display: none !important; }
+  .print-map-note { display: block !important; font-size: 10pt; color: #333; }
+
+  /* Tablas legibles en papel */
+  table.data { font-size: 9pt; }
+  table.data th { background: #eee !important; color: #000 !important; position: static !important; }
+  table.data.responsive thead { display: table-header-group !important; }
+  table.data.responsive tr, table.data.responsive td { display: table-row; }
+  table.data.responsive td { display: table-cell; }
+  table.data.responsive td::before { content: none !important; }
+
+  .timeline::before { background: #999 !important; }
+  a[href]::after { content: ""; }
+}
+
+.print-map-note { display: none; }

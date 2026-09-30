@@ -1,0 +1,167 @@
+/* ============================================================
+   LogiTrace — variables.css
+   Tokens de diseño: color, tipografía, espaciado, sombras.
+   Ningún valor de color debe escribirse fuera de este archivo.
+   ============================================================ */
+
+:root {
+  /* --- Marca propia LogiTrace (identidad independiente) --- */
+  --brand-900: #0b2e4f;
+  --brand-800: #0f3f6b;
+  --brand-700: #14548c;
+  --brand-600: #1a6aad;
+  --brand-500: #2585cc;
+  --brand-300: #7fbce8;
+  --brand-100: #d9ecf9;
+  --brand-050: #eff7fd;
+
+  --accent-600: #0f8a6a;
+  --accent-500: #12a37d;
+  --accent-100: #d6f3ea;
+
+  /* --- Semánticos --- */
+  --ok-600: #157f4a;
+  --ok-500: #1c9d5c;
+  --ok-100: #d8f2e4;
+
+  --warn-600: #9a6200;
+  --warn-500: #c07c00;
+  --warn-100: #fdf0d5;
+
+  --danger-600: #9e2323;
+  --danger-500: #c62f2f;
+  --danger-100: #fbe0e0;
+
+  --info-600: #3a4b8a;
+  --info-500: #4a5fb0;
+  --info-100: #e3e7f8;
+
+  /* --- Neutros --- */
+  --gray-900: #16202b;
+  --gray-800: #243342;
+  --gray-700: #3a4d61;
+  --gray-600: #55697e;
+  --gray-500: #78899b;
+  --gray-400: #a3b1bf;
+  --gray-300: #c9d3dc;
+  --gray-200: #e2e8ee;
+  --gray-100: #f0f4f8;
+  --gray-050: #f7fafc;
+  --white: #ffffff;
+
+  /* --- Roles de superficie --- */
+  --bg-app: var(--gray-100);
+  --bg-surface: var(--white);
+  --bg-surface-alt: var(--gray-050);
+  --bg-sidebar: var(--brand-900);
+  --bg-sidebar-hover: var(--brand-800);
+  --bg-header: var(--white);
+  --border: var(--gray-200);
+  --border-strong: var(--gray-300);
+
+  --text: var(--gray-900);
+  --text-soft: var(--gray-600);
+  --text-muted: var(--gray-500);
+  --text-invert: var(--white);
+  --text-sidebar: #c9dcec;
+
+  /* --- Estado geográfico (color + forma, nunca solo color) --- */
+  --geo-ok: var(--ok-500);
+  --geo-out: var(--danger-500);
+  --geo-low: var(--warn-500);
+  --geo-none: var(--gray-500);
+
+  /* --- Tipografía --- */
+  --font-sans: "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+
+  --fs-xs: 0.72rem;
+  --fs-sm: 0.82rem;
+  --fs-md: 0.92rem;
+  --fs-lg: 1.05rem;
+  --fs-xl: 1.3rem;
+  --fs-2xl: 1.7rem;
+  --fs-3xl: 2.1rem;
+
+  --fw-regular: 400;
+  --fw-medium: 600;
+  --fw-bold: 700;
+
+  /* --- Espaciado --- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  /* --- Radios y sombras --- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(22, 32, 43, 0.08);
+  --shadow-md: 0 4px 12px rgba(22, 32, 43, 0.10);
+  --shadow-lg: 0 12px 32px rgba(22, 32, 43, 0.18);
+
+  /* --- Medidas de layout --- */
+  --sidebar-w: 248px;
+  --header-h: 60px;
+  --map-min-h: 420px;
+
+  --focus-ring: 0 0 0 3px rgba(37, 133, 204, 0.45);
+  --transition: 140ms ease;
+}
+
+/* Modo oscuro automático: se redefinen únicamente los roles. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-app: #0e1620;
+    --bg-surface: #16212e;
+    --bg-surface-alt: #1b2836;
+    --bg-header: #16212e;
+    --bg-sidebar: #0a121b;
+    --bg-sidebar-hover: #16212e;
+    --border: #26364a;
+    --border-strong: #35485f;
+    --text: #e7eef5;
+    --text-soft: #b3c2d1;
+    --text-muted: #8b9cad;
+    --gray-100: #1b2836;
+    --gray-050: #1b2836;
+    --gray-200: #26364a;
+    --ok-100: #102c1f;
+    --warn-100: #33240a;
+    --danger-100: #35161a;
+    --info-100: #1b2140;
+    --brand-100: #14293c;
+    --brand-050: #12222f;
+    --accent-100: #0f2b25;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg-app: #0e1620;
+  --bg-surface: #16212e;
+  --bg-surface-alt: #1b2836;
+  --bg-header: #16212e;
+  --bg-sidebar: #0a121b;
+  --bg-sidebar-hover: #16212e;
+  --border: #26364a;
+  --border-strong: #35485f;
+  --text: #e7eef5;
+  --text-soft: #b3c2d1;
+  --text-muted: #8b9cad;
+  --gray-100: #1b2836;
+  --gray-050: #1b2836;
+  --gray-200: #26364a;
+  --ok-100: #102c1f;
+  --warn-100: #33240a;
+  --danger-100: #35161a;
+  --info-100: #1b2140;
+  --brand-100: #14293c;
+  --brand-050: #12222f;
+  --accent-100: #0f2b25;
+}

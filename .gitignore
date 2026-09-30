@@ -1,0 +1,37 @@
+# ============================================================
+# LogiTrace — .gitignore
+# ============================================================
+
+# Configuración local con la URL real de la Web App.
+# Descomente la línea siguiente SÓLO si prefiere no publicar su
+# propia URL /exec en el repositorio. Para que GitHub Pages
+# funcione, el archivo debe existir en el servidor.
+# assets/js/config.runtime.js
+
+# Credenciales de Apps Script CLI (clasp): nunca deben subirse.
+.clasprc.json
+.clasp.json
+*.credentials.json
+client_secret*.json
+
+# Dependencias y artefactos de empaquetado
+node_modules/
+dist/
+build/
+assets/js/app.bundle.js
+
+# Exportaciones generadas por la aplicación
+*.geojson
+!docs/*.geojson
+inventario.csv
+
+# Archivos temporales de Office y del sistema
+~$*.xlsx
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp

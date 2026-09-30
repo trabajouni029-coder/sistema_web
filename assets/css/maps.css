@@ -1,0 +1,84 @@
+/* ============================================================
+   LogiTrace — maps.css
+   Contenedores Leaflet, marcadores, leyenda, trayectorias.
+   ============================================================ */
+
+.map-canvas {
+  width: 100%;
+  min-height: var(--map-min-h);
+  height: 58vh;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--gray-200);
+  z-index: 1; /* por debajo de modales y sidebar */
+}
+.map-canvas--sm { height: 240px; min-height: 240px; }
+.map-canvas--md { height: 340px; min-height: 300px; }
+
+.map-shell { position: relative; }
+
+/* ---------- Leyenda ---------- */
+.map-legend {
+  display: flex; flex-wrap: wrap; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-3);
+}
+.map-legend__item { display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); }
+.map-legend__sym {
+  font-weight: var(--fw-bold); width: 18px; text-align: center;
+  font-size: var(--fs-sm);
+}
+.map-legend__sym--ok { color: var(--geo-ok); }
+.map-legend__sym--out { color: var(--geo-out); }
+.map-legend__sym--low { color: var(--geo-low); }
+.map-legend__sym--none { color: var(--geo-none); }
+
+/* ---------- Marcadores propios (divIcon) ---------- */
+.lt-marker {
+  display: grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--brand-600); color: #fff;
+  font-size: 12px; font-weight: 700; line-height: 1;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.lt-marker--ok { background: var(--geo-ok); }
+.lt-marker--out { background: var(--geo-out); }
+.lt-marker--low { background: var(--geo-low); }
+.lt-marker--none { background: var(--geo-none); }
+.lt-marker--loc { background: var(--brand-700); border-radius: var(--radius-sm); }
+.lt-marker--seq { background: var(--brand-800); width: 28px; height: 28px; font-size: 13px; }
+
+/* ---------- Popups ---------- */
+.leaflet-popup-content { margin: 10px 12px; font-family: var(--font-sans); font-size: 12px; }
+.leaflet-popup-content-wrapper { border-radius: var(--radius-md); }
+.pop-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; color: #16202b; }
+.pop-sub { font-size: 11px; color: #55697e; margin-bottom: 6px; }
+.pop-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 11px; color: #243342; }
+.pop-grid b { font-weight: 600; color: #55697e; font-weight: 400; }
+.pop-actions { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.pop-actions .btn { min-height: 26px; padding: 3px 8px; font-size: 11px; }
+
+/* ---------- Geocercas ---------- */
+.geofence-note { font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--sp-2); }
+
+/* ---------- Selector de coordenadas ---------- */
+.coord-picker { display: grid; gap: var(--sp-3); }
+.coord-picker__readout {
+  font-family: var(--font-mono); font-size: var(--fs-xs);
+  background: var(--bg-surface-alt); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: var(--sp-2) var(--sp-3);
+}
+
+/* ---------- Precisión GPS ---------- */
+.accuracy-bar { height: 7px; border-radius: var(--radius-pill); background: var(--gray-200); overflow: hidden; }
+.accuracy-bar__fill { height: 100%; background: var(--ok-500); transition: width 200ms ease; }
+.accuracy-bar__fill--warn { background: var(--warn-500); }
+.accuracy-bar__fill--bad { background: var(--danger-500); }
+
+/* Atribución siempre legible */
+.leaflet-control-attribution { font-size: 10px !important; }

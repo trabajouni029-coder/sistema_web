@@ -1,0 +1,117 @@
+/* ============================================================
+   LogiTrace — responsive.css
+   Desktop → tablet → smartphone. Sidebar colapsable,
+   tablas adaptables, escáner y mapa prioritarios en móvil.
+   ============================================================ */
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1100px) {
+  :root { --sidebar-w: 208px; }
+  .grid--split { grid-template-columns: 1fr; }
+  .main { padding: var(--sp-4); }
+}
+
+/* ---------- Sidebar colapsable ---------- */
+@media (max-width: 880px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-areas: "header" "main";
+  }
+
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 262px; height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 180ms ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.is-open { transform: none; }
+
+  .sidebar-scrim {
+    position: fixed; inset: 0; background: rgba(11, 22, 33, 0.5);
+    z-index: 25; display: none;
+  }
+  .sidebar-scrim.is-open { display: block; }
+
+  .header__menu-btn { display: inline-flex; }
+  .header__title { display: none; }
+  .header__search { max-width: none; }
+  .conn__sync { display: none; }
+
+  .view__title { font-size: var(--fs-xl); }
+  .grid--kpi { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+
+/* ---------- Smartphone ---------- */
+@media (max-width: 600px) {
+  :root {
+    --header-h: 56px;
+    --map-min-h: 350px;
+  }
+
+  .main { padding: var(--sp-3); }
+  .view__head { margin-bottom: var(--sp-4); }
+  .view__actions { width: 100%; }
+  .view__actions .btn { flex: 1 1 auto; }
+
+  .kpi { padding: var(--sp-3); }
+  .kpi__value { font-size: var(--fs-xl); }
+  .grid--kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .grid--2, .grid--cards, .grid--form { grid-template-columns: 1fr; }
+
+  /* Botones táctiles: 44px de alto mínimo */
+  .btn { min-height: 44px; padding: 11px 15px; }
+  .btn--sm { min-height: 34px; padding: 6px 10px; }
+  input, select, textarea { min-height: 44px; font-size: var(--fs-md); }
+
+  .map-canvas { height: 360px; min-height: 350px; }
+  .map-canvas--sm { height: 220px; min-height: 220px; }
+
+  /* Tablas adaptables: cada fila se convierte en tarjeta */
+  table.data.responsive thead { display: none; }
+  table.data.responsive, table.data.responsive tbody,
+  table.data.responsive tr, table.data.responsive td { display: block; width: 100%; }
+  table.data.responsive tr {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    margin-bottom: var(--sp-3); padding: var(--sp-2) var(--sp-3);
+    background: var(--bg-surface);
+  }
+  table.data.responsive td {
+    border: 0; padding: 5px 0; white-space: normal;
+    display: grid; grid-template-columns: 42% 1fr; gap: var(--sp-3); align-items: center;
+  }
+  table.data.responsive td::before {
+    content: attr(data-label);
+    font-size: var(--fs-xs); color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  table.data.responsive td.num { text-align: left; }
+
+  .modal { max-width: 100%; }
+  .modal__foot { flex-direction: column-reverse; }
+  .modal__foot .btn { width: 100%; }
+
+  .toast-stack { left: var(--sp-3); right: var(--sp-3); bottom: var(--sp-3); max-width: none; }
+
+  .tl-grid { grid-template-columns: 1fr 1fr; }
+  .filters { grid-template-columns: 1fr 1fr; }
+  .id-gallery { grid-template-columns: 1fr; }
+
+  /* Escáner prioritario: ocupa el ancho completo y primero en orden */
+  .scanner-stage { order: -1; }
+}
+
+@media (max-width: 380px) {
+  .grid--kpi { grid-template-columns: 1fr; }
+  .filters { grid-template-columns: 1fr; }
+  .tl-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- Preferencia de movimiento reducido ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="LogiTrace — identificación, trazabilidad, inventario y geolocalización logística sobre Google Sheets y Apps Script.">
+<meta name="color-scheme" content="light dark">
+<title>LogiTrace · Identificación, trazabilidad, inventario y geolocalización logística</title>
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314548c'/%3E%3Cpath d='M8 22V10h3v9h6v3H8zm11-12h3v12h-3V10z' fill='%23fff'/%3E%3C/svg%3E">
+
+<!-- Cartografía -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+      crossorigin="anonymous" referrerpolicy="no-referrer">
+
+<!-- Hojas de estilo propias -->
+<link rel="stylesheet" href="assets/css/variables.css">
+<link rel="stylesheet" href="assets/css/layout.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/maps.css">
+<link rel="stylesheet" href="assets/css/responsive.css">
+<link rel="stylesheet" href="assets/css/print.css">
+</head>
+
+<body>
+<a class="skip-link" href="#mainContent">Saltar al contenido principal</a>
+
+<div class="app-shell">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+    <div class="sidebar__brand">
+      <span class="sidebar__logo" aria-hidden="true">LT</span>
+      <span>
+        <span class="sidebar__title">LogiTrace</span>
+        <span class="sidebar__subtitle">Trazabilidad logística</span>
+      </span>
+    </div>
+
+    <nav class="sidebar__nav">
+      <div class="sidebar__group-label">Operación</div>
+      <button class="nav-item" type="button" data-view="dashboard"><i class="icon" data-lucide="layout-dashboard" aria-hidden="true"></i>Dashboard</button>
+      <button class="nav-item" type="button" data-view="products"><i class="icon" data-lucide="package" aria-hidden="true"></i>Productos</button>
+      <button class="nav-item" type="button" data-view="inventory"><i class="icon" data-lucide="boxes" aria-hidden="true"></i>Inventario</button>
+      <button class="nav-item" type="button" data-view="events"><i class="icon" data-lucide="list-checks" aria-hidden="true"></i>Eventos</button>
+
+      <div class="sidebar__group-label">Identificación</div>
+      <button class="nav-item" type="button" data-view="codes"><i class="icon" data-lucide="barcode" aria-hidden="true"></i>Generar códigos</button>
+      <button class="nav-item" type="button" data-view="scanner"><i class="icon" data-lucide="scan-line" aria-hidden="true"></i>Escáner</button>
+      <button class="nav-item" type="button" data-view="rfid"><i class="icon" data-lucide="radio" aria-hidden="true"></i>RFID</button>
+
+      <div class="sidebar__group-label">Trazabilidad y territorio</div>
+      <button class="nav-item" type="button" data-view="traceability"><i class="icon" data-lucide="git-branch" aria-hidden="true"></i>Trazabilidad</button>
+      <button class="nav-item" type="button" data-view="locations"><i class="icon" data-lucide="warehouse" aria-hidden="true"></i>Ubicaciones</button>
+      <button class="nav-item" type="button" data-view="map"><i class="icon" data-lucide="map" aria-hidden="true"></i>Mapa</button>
+      <button class="nav-item" type="button" data-view="export"><i class="icon" data-lucide="download" aria-hidden="true"></i>Exportar</button>
+
+      <div class="sidebar__group-label">Sistema</div>
+      <button class="nav-item" type="button" data-view="help"><i class="icon" data-lucide="settings" aria-hidden="true"></i>Ayuda / Configuración</button>
+    </nav>
+
+    <div class="sidebar__footer">
+      LogiTrace · prototipo académico<br>
+      Frontend estático + Apps Script + Sheets
+    </div>
+  </aside>
+  <div class="sidebar-scrim" id="sidebarScrim" aria-hidden="true"></div>
+
+  <!-- ================= HEADER ================= -->
+  <header class="header">
+    <button class="btn btn--ghost btn--icon header__menu-btn" id="menuButton" type="button"
+            aria-label="Abrir menú de navegación" aria-expanded="false" aria-controls="sidebar">☰</button>
+
+    <h1 class="header__title" id="headerTitle">Dashboard</h1>
+
+    <div class="header__search">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <label class="sr-only" for="globalSearch">Búsqueda global por ID, código, nombre, lote o categoría</label>
+      <input id="globalSearch" type="search" placeholder="Buscar por ID, código, nombre, lote o categoría…  (/)">
+    </div>
+    <button class="btn btn--ghost btn--sm" id="searchButton" type="button">Buscar</button>
+
+    <span class="header__spacer"></span>
+
+    <div class="header__status">
+      <span class="conn" id="connState" role="status"><span class="conn__dot"></span><span>Iniciando…</span></span>
+      <button class="btn btn--ghost btn--icon" id="themeButton" type="button" aria-label="Alternar tema claro u oscuro">◐</button>
+      <button class="btn btn--primary btn--sm" id="quickScanButton" type="button">Escaneo rápido</button>
+    </div>
+  </header>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main" id="mainContent">
+    <div id="modeBanner" class="banner hidden"></div>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="view" id="view-dashboard" aria-labelledby="t-dashboard">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-dashboard">Panel de control</h2>
+          <p class="view__desc">Indicadores logísticos y geográficos calculados sobre los datos reales del sistema.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--ghost" type="button" data-dash-goto="scanner">Escanear</button>
+          <button class="btn btn--ghost" type="button" data-dash-goto="products">Nuevo producto</button>
+          <button class="btn btn--subtle" type="button" data-dash-action="reload">Actualizar</button>
+        </div>
+      </div>
+
+      <div data-dash="alerts" class="mb-4"></div>
+
+      <h3 class="card__title mb-2">Indicadores logísticos</h3>
+      <div class="grid grid--kpi mb-5" data-dash="kpis"></div>
+
+      <h3 class="card__title mb-2">Indicadores geográficos</h3>
+      <div class="grid grid--kpi mb-5" data-dash="geo"></div>
+
+      <div class="grid grid--2" data-dash="charts">
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Inventario por categoría</div>
+            <div class="card__desc">Unidades y referencias por categoría</div></div></div>
+          <div class="card__body"><div class="chart-box"><canvas id="chartInventory"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Tecnologías de identificación</div>
+            <div class="card__desc">Code 128, EAN-13, QR y RFID simulado</div></div></div>
+          <div class="card__body"><div class="chart-box"><canvas id="chartTech"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Actividad reciente</div>
+            <div class="card__desc">Eventos registrados en los últimos 7 días</div></div></div>
+          <div class="card__body"><div class="chart-box"><canvas id="chartActivity"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Validación geográfica</div>
+            <div class="card__desc">OK, fuera de geocerca, baja precisión y sin GPS</div></div></div>
+          <div class="card__body"><div class="chart-box"><canvas id="chartGeo"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Excepciones por ubicación</div>
+            <div class="card__desc">Ubicaciones que acumulan más anomalías geográficas</div></div></div>
+          <div class="card__body"><div class="chart-box"><canvas id="chartExceptions"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Eventos por tipo</div>
+            <div class="card__desc">Distribución del histórico de operaciones</div></div></div>
+          <div class="card__body"><div class="chart-box"><canvas id="chartEvents"></canvas></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRODUCTOS ============ -->
+    <section class="view" id="view-products" aria-labelledby="t-products">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-products">Productos</h2>
+          <p class="view__desc">Alta y mantenimiento del catálogo. La cantidad de creación es el stock inicial: no genera recepción adicional.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--primary" type="button" data-p-action="new">Nuevo producto</button>
+          <button class="btn btn--subtle" type="button" data-p-action="reload">Actualizar</button>
+        </div>
+      </div>
+
+      <div class="card mb-4"><div class="card__body">
+        <div class="filters">
+          <div class="field mb-0">
+            <label class="field__label" for="pSearch">Búsqueda</label>
+            <input id="pSearch" name="pSearch" type="search" placeholder="ID, nombre, lote, código…">
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="pCategory">Categoría</label>
+            <select id="pCategory" name="pCategory"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="pLocation">Ubicación</label>
+            <select id="pLocation" name="pLocation"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="pStock">Estado de stock</label>
+            <select id="pStock" name="pStock">
+              <option value="">Todos</option>
+              <option value="DISPONIBLE">Disponible</option>
+              <option value="STOCK_BAJO">Stock bajo</option>
+              <option value="AGOTADO">Agotado</option>
+            </select>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="card"><div class="card__body card__body--flush" data-p="table"></div></div>
+    </section>
+
+    <!-- ============ GENERAR CÓDIGOS ============ -->
+    <section class="view" id="view-codes" aria-labelledby="t-codes">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-codes">Generar identificadores</h2>
+          <p class="view__desc">Flujo: seleccionar tipo → introducir información → configurar → generar → visualizar → descargar o imprimir.</p>
+        </div>
+      </div>
+
+      <div class="grid grid--split">
+        <div class="card">
+          <div class="card__head"><div class="card__title">Configuración</div></div>
+          <div class="card__body">
+            <div class="field">
+              <label class="field__label" for="genType">Tipo de identificador</label>
+              <select id="genType" name="genType">
+                <option value="CODE128">Code 128 (alfanumérico)</option>
+                <option value="EAN13">EAN-13 (numérico)</option>
+                <option value="QR">Código QR</option>
+                <option value="RFID">RFID simulado (EPC 96 bits)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field__label" for="genValue">Información a codificar</label>
+              <input id="genValue" name="genValue" placeholder="UPEC-ALM-P001-L03-0001">
+              <span class="field__hint hidden" data-ean-hint>EAN-13 admite sólo dígitos: 12 (se calcula el 13.º) o 13 completos.</span>
+            </div>
+            <div class="field hidden" data-field="qrMode">
+              <label class="field__label" for="genQrMode">Modalidad del QR</label>
+              <select id="genQrMode" name="genQrMode">
+                <option value="SIMPLE">Simple — sólo el ID_PRODUCTO</option>
+                <option value="STRUCTURED">Estructurada — JSON {type, id, version}</option>
+              </select>
+            </div>
+            <div class="row">
+              <button class="btn btn--primary" type="button" data-gen="generate">Generar</button>
+              <button class="btn btn--ghost" type="button" data-gen="suggest">Sugerir valor</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Vista previa</div>
+            <div class="card__desc">Los códigos se generan en el navegador; no se envían a servicios externos.</div></div></div>
+          <div class="card__body">
+            <div class="id-box" style="min-height:180px">
+              <div class="id-box__canvas" data-gen-preview></div>
+            </div>
+            <div class="mt-4" data-gen-meta></div>
+            <div class="row mt-4">
+              <button class="btn btn--subtle" type="button" data-gen="download">Descargar PNG</button>
+              <button class="btn btn--subtle" type="button" data-gen="copy">Copiar valor</button>
+              <button class="btn btn--ghost" type="button" data-gen="print">Imprimir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ESCÁNER ============ -->
+    <section class="view" id="view-scanner" aria-labelledby="t-scanner">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-scanner">Escáner de identificadores</h2>
+          <p class="view__desc">Code 128, EAN-13 y QR con la cámara o desde una imagen. Tras la lectura se muestra la ficha completa del producto; nunca se registra un evento automáticamente.</p>
+        </div>
+      </div>
+
+      <div data-scan="https"></div>
+
+      <div class="card mb-4 scanner-stage">
+        <div class="card__head" data-tabs>
+          <div class="tabs" role="tablist" aria-label="Modo de lectura">
+            <button class="tab" role="tab" id="tab-cam" aria-controls="panel-cam" aria-selected="true">Cámara</button>
+            <button class="tab" role="tab" id="tab-img" aria-controls="panel-img" aria-selected="false" tabindex="-1">Imagen</button>
+            <button class="tab" role="tab" id="tab-man" aria-controls="panel-man" aria-selected="false" tabindex="-1">Manual</button>
+          </div>
+        </div>
+        <div class="card__body">
+          <div class="tabpanel" id="panel-cam" role="tabpanel" aria-labelledby="tab-cam">
+            <div class="row mb-3">
+              <button class="btn btn--primary" type="button" data-scan="start">Iniciar cámara</button>
+              <button class="btn btn--danger hidden" type="button" data-scan="stop">Detener cámara</button>
+              <button class="btn btn--ghost hidden" type="button" data-scan="switch">Cambiar cámara</button>
+            </div>
+            <div id="scannerReader" style="width:100%;max-width:520px;margin:0 auto"></div>
+          </div>
+
+          <div class="tabpanel" id="panel-img" role="tabpanel" aria-labelledby="tab-img" hidden>
+            <div class="field">
+              <label class="field__label" for="scanFile">Imagen con el código</label>
+              <input id="scanFile" name="scanFile" type="file" accept="image/*">
+              <span class="field__hint">Se procesa localmente en el navegador. Funciona sin cámara.</span>
+            </div>
+          </div>
+
+          <div class="tabpanel" id="panel-man" role="tabpanel" aria-labelledby="tab-man" hidden>
+            <form data-scan="manual-form">
+              <div class="field">
+                <label class="field__label" for="scanManual">Introducir el código manualmente</label>
+                <input id="scanManual" name="scanManual" placeholder="UPEC-ALM-P001-L03-0001 · 7860100000031 · EPC">
+                <span class="field__hint">Respaldo para dispositivos sin cámara o códigos ilegibles.</span>
+              </div>
+              <button class="btn btn--primary" type="submit">Consultar</button>
+            </form>
+          </div>
+
+          <div class="mt-3" data-scan="status"></div>
+        </div>
+      </div>
+
+      <div data-scan="result"></div>
+    </section>
+
+    <!-- ============ RFID ============ -->
+    <section class="view" id="view-rfid" aria-labelledby="t-rfid">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-rfid">RFID simulado</h2>
+          <p class="view__desc">Generación de UID y EPC de 96 bits por software. LogiTrace no realiza lectura de etiquetas RFID físicas.</p>
+        </div>
+      </div>
+
+      <div class="banner banner--warn mb-4">
+        <div><div class="banner__title">RFID SIMULADO</div>
+        <div class="txt-xs">Los identificadores se generan en el navegador. No existe API web estándar de lectura RFID: la «lectura» consiste en introducir el UID/EPC.</div></div>
+      </div>
+
+      <div class="grid grid--2">
+        <div class="card">
+          <div class="card__head"><div class="card__title">Generador</div></div>
+          <div class="card__body">
+            <dl class="dl-grid mb-4">
+              <div><dt>UID (8 bytes)</dt><dd class="mono" data-rfid="uid">—</dd></div>
+              <div><dt>EPC-like 96 bits</dt><dd class="mono break" data-rfid="epc">—</dd></div>
+            </dl>
+            <div data-rfid="chip"></div>
+            <div class="row mt-4">
+              <button class="btn btn--primary" type="button" data-rfid="generate">Generar nuevo</button>
+              <button class="btn btn--subtle" type="button" data-rfid="copy">Copiar EPC</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Lectura simulada</div>
+            <div class="card__desc">Consulta el producto asociado a un UID/EPC</div></div></div>
+          <div class="card__body">
+            <div class="field">
+              <label class="field__label" for="rfidRead">UID / EPC</label>
+              <input id="rfidRead" name="rfidRead" placeholder="3034257BF7194E4000000007">
+            </div>
+            <button class="btn btn--primary" type="button" data-rfid="lookup">Consultar producto</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4" data-rfid="result"></div>
+    </section>
+
+    <!-- ============ INVENTARIO ============ -->
+    <section class="view" id="view-inventory" aria-labelledby="t-inventory">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-inventory">Inventario</h2>
+          <p class="view__desc">Existencias consolidadas. El stock sólo cambia mediante eventos logísticos validados por el servidor.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--subtle" type="button" data-inv-action="reload">Actualizar</button>
+        </div>
+      </div>
+
+      <div class="grid grid--kpi mb-5" data-inv="kpis"></div>
+
+      <h3 class="card__title mb-2">Inventario por categoría</h3>
+      <div class="mb-5" data-inv="categories"></div>
+
+      <div class="card mb-4"><div class="card__body">
+        <div class="filters">
+          <div class="field mb-0">
+            <label class="field__label" for="invSearch">Búsqueda</label>
+            <input id="invSearch" name="invSearch" type="search" placeholder="Código, producto, lote…">
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="invCategory">Categoría</label>
+            <select id="invCategory" name="invCategory"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="invState">Estado</label>
+            <select id="invState" name="invState">
+              <option value="">Todos</option>
+              <option value="DISPONIBLE">Disponible</option>
+              <option value="STOCK_BAJO">Stock bajo</option>
+              <option value="AGOTADO">Agotado</option>
+            </select>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="card"><div class="card__body card__body--flush" data-inv="table"></div></div>
+    </section>
+
+    <!-- ============ TRAZABILIDAD ============ -->
+    <section class="view" id="view-traceability" aria-labelledby="t-trace">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-trace">Trazabilidad</h2>
+          <p class="view__desc">Historial cronológico completo, identificadores visibles y recorrido geográfico del producto.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--subtle" type="button" data-trace-action="reload">Actualizar</button>
+        </div>
+      </div>
+
+      <div class="card mb-4"><div class="card__body">
+        <div class="field mb-0">
+          <label class="field__label" for="traceProduct">Producto</label>
+          <select id="traceProduct" name="traceProduct"></select>
+        </div>
+      </div></div>
+
+      <div data-trace="content"></div>
+    </section>
+
+    <!-- ============ EVENTOS ============ -->
+    <section class="view" id="view-events" aria-labelledby="t-events">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-events">Eventos logísticos</h2>
+          <p class="view__desc">Registro histórico inmutable: los eventos nunca se eliminan. Las excepciones geográficas se conservan como evidencia.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--primary" type="button" data-ev-action="new">Registrar evento</button>
+          <button class="btn btn--subtle" type="button" data-ev-action="reload">Actualizar</button>
+        </div>
+      </div>
+
+      <div class="grid grid--kpi mb-4" data-ev="kpis"></div>
+
+      <div class="card mb-4"><div class="card__body">
+        <div class="filters">
+          <div class="field mb-0">
+            <label class="field__label" for="evFilterSearch">Búsqueda</label>
+            <input id="evFilterSearch" name="evFilterSearch" type="search" placeholder="Producto, actor, código…">
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="evFilterType">Tipo de evento</label>
+            <select id="evFilterType" name="evFilterType"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="evFilterGeo">Validación geográfica</label>
+            <select id="evFilterGeo" name="evFilterGeo"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="evFilterFrom">Desde</label>
+            <input id="evFilterFrom" name="evFilterFrom" type="date">
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="evFilterTo">Hasta</label>
+            <input id="evFilterTo" name="evFilterTo" type="date">
+          </div>
+        </div>
+      </div></div>
+
+      <div class="card"><div class="card__body card__body--flush" data-ev="table"></div></div>
+    </section>
+
+    <!-- ============ UBICACIONES ============ -->
+    <section class="view" id="view-locations" aria-labelledby="t-locations">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-locations">Maestro de ubicaciones</h2>
+          <p class="view__desc">Jerarquía mediante PADRE_ID con herencia de coordenadas y radios de geocerca sugeridos por tipo.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--primary" type="button" data-loc-action="new">Nueva ubicación</button>
+          <button class="btn btn--subtle" type="button" data-loc-action="reload">Actualizar</button>
+        </div>
+      </div>
+
+      <div class="grid grid--kpi mb-4" data-loc="kpis"></div>
+
+      <div class="card mb-4"><div class="card__body">
+        <div class="filters">
+          <div class="field mb-0">
+            <label class="field__label" for="locSearch">Búsqueda</label>
+            <input id="locSearch" name="locSearch" type="search" placeholder="ID, nombre, dirección…">
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="locTypeFilter">Tipo</label>
+            <select id="locTypeFilter" name="locTypeFilter"></select>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="card mb-4"><div class="card__body card__body--flush" data-loc="table"></div></div>
+
+      <div class="card">
+        <div class="card__head"><div><div class="card__title">Jerarquía de ubicaciones</div>
+          <div class="card__desc">Las hijas sin coordenadas heredan LAT/LON y radio del primer ancestro que los tenga.</div></div></div>
+        <div class="card__body" data-loc="tree"></div>
+      </div>
+    </section>
+
+    <!-- ============ MAPA ============ -->
+    <section class="view" id="view-map" aria-labelledby="t-map">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-map">Mapa operativo</h2>
+          <p class="view__desc">Ubicaciones, geocercas y eventos georreferenciados sobre OpenStreetMap. Los eventos sin GPS se listan aparte: no se inventan coordenadas.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--ghost" type="button" data-map-action="fit">Ajustar mapa</button>
+        </div>
+      </div>
+
+      <div class="card mb-4"><div class="card__body">
+        <div class="filters">
+          <div class="field mb-0">
+            <label class="field__label" for="mapProduct">Producto</label>
+            <select id="mapProduct" name="mapProduct"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="mapEvent">Evento</label>
+            <select id="mapEvent" name="mapEvent"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="mapGeoStatus">Estado geográfico</label>
+            <select id="mapGeoStatus" name="mapGeoStatus"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="mapLocation">Ubicación</label>
+            <select id="mapLocation" name="mapLocation"></select>
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="mapDateFrom">Fecha desde</label>
+            <input id="mapDateFrom" name="mapDateFrom" type="date">
+          </div>
+          <div class="field mb-0">
+            <label class="field__label" for="mapDateTo">Fecha hasta</label>
+            <input id="mapDateTo" name="mapDateTo" type="date">
+          </div>
+        </div>
+        <div class="row mt-3">
+          <button class="btn btn--primary" type="button" data-map-action="apply">Aplicar</button>
+          <button class="btn btn--ghost" type="button" data-map-action="clear">Limpiar</button>
+        </div>
+      </div></div>
+
+      <div class="grid grid--kpi mb-4" data-map="stats"></div>
+
+      <div class="card mb-4"><div class="card__body">
+        <div class="map-shell">
+          <div class="map-canvas" data-map="canvas"></div>
+        </div>
+        <div data-map-legend></div>
+        <div class="print-map-note">Mapa disponible únicamente en pantalla.</div>
+      </div></div>
+
+      <div data-map="nogps"></div>
+    </section>
+
+    <!-- ============ EXPORTAR ============ -->
+    <section class="view" id="view-export" aria-labelledby="t-export">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-export">Exportación GeoJSON para QGIS</h2>
+          <p class="view__desc">LogiTrace es la fuente de datos. QGIS únicamente consume los archivos exportados.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--ghost" type="button" data-export="preview">Vista previa</button>
+        </div>
+      </div>
+
+      <div class="banner banner--info mb-4">
+        <div><div class="banner__title">Orden de coordenadas</div>
+        <div class="txt-xs">GeoJSON exige <b>[longitud, latitud]</b> (RFC 7946). LogiTrace construye todos los pares en un único punto del código para impedir inversiones.</div></div>
+      </div>
+
+      <div class="grid grid--kpi mb-4" data-export="stats"></div>
+
+      <div class="grid grid--2">
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">ubicaciones.geojson</div>
+            <div class="card__desc">Puntos del maestro con radio de geocerca y jerarquía</div></div></div>
+          <div class="card__body">
+            <p class="txt-sm txt-soft">Incluye id_ubicacion, nombre, tipo, dirección, radio_geocerca_m, padre_id y si las coordenadas son heredadas.</p>
+            <button class="btn btn--primary" type="button" data-export="locations">Exportar ubicaciones.geojson</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">eventos.geojson</div>
+            <div class="card__desc">Eventos con coordenadas y su validación geográfica</div></div></div>
+          <div class="card__body">
+            <p class="txt-sm txt-soft">Incluye id_evento, id_producto, evento, precision_m, distancia_declarada_m y validacion_geo. Los eventos SIN_GPS se omiten.</p>
+            <button class="btn btn--primary" type="button" data-export="events">Exportar eventos.geojson</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Trayectoria por producto</div>
+            <div class="card__desc">LineString con el recorrido cronológico</div></div></div>
+          <div class="card__body">
+            <div class="field">
+              <label class="field__label" for="expProduct">Producto</label>
+              <select id="expProduct" name="expProduct"></select>
+            </div>
+            <button class="btn btn--ghost" type="button" data-export="trajectory">Exportar trayectoria</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Tabla auxiliar</div>
+            <div class="card__desc">Inventario en CSV para unir en QGIS</div></div></div>
+          <div class="card__body">
+            <p class="txt-sm txt-soft">Permite unir atributos de inventario con las capas por ID_PRODUCTO.</p>
+            <button class="btn btn--ghost" type="button" data-export="csv">Exportar inventario.csv</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card__head"><div class="card__title">Cómo cargarlo en QGIS</div></div>
+        <div class="card__body txt-sm">
+          <ol>
+            <li>Exporte <span class="mono">ubicaciones.geojson</span> y <span class="mono">eventos.geojson</span>.</li>
+            <li>En QGIS: <b>Capa → Añadir capa → Añadir capa vectorial</b> y seleccione cada archivo.</li>
+            <li>El SRC es EPSG:4326 (CRS84); QGIS lo detecta automáticamente.</li>
+            <li>Simbolice los eventos por el campo <span class="mono">validacion_geo</span> (categorizado).</li>
+            <li>Para representar las geocercas, aplique un búfer con el campo <span class="mono">radio_geocerca_m</span> sobre la capa de ubicaciones.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AYUDA / CONFIGURACIÓN ============ -->
+    <section class="view" id="view-help" aria-labelledby="t-help">
+      <div class="view__head">
+        <div class="view__head-text">
+          <h2 class="view__title" id="t-help">Ayuda y configuración</h2>
+          <p class="view__desc">Estado del backend, parámetros de operación y puesta en marcha.</p>
+        </div>
+        <div class="view__actions">
+          <button class="btn btn--primary" type="button" data-cfg="health">Probar backend (health)</button>
+        </div>
+      </div>
+
+      <div class="grid grid--2">
+        <div class="card">
+          <div class="card__head"><div class="card__title">Estado del sistema</div></div>
+          <div class="card__body" data-cfg="status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><div><div class="card__title">Configuración de este navegador</div>
+            <div class="card__desc">Para todos los usuarios, edite <span class="mono">assets/js/config.runtime.js</span></div></div></div>
+          <div class="card__body">
+            <form data-cfg-form novalidate>
+              <div class="field">
+                <label class="field__label" for="cfgUrl">APPS_SCRIPT_URL</label>
+                <input id="cfgUrl" name="APPS_SCRIPT_URL" placeholder="https://script.google.com/macros/s/…/exec">
+                <span class="field__hint">URL /exec de su Web App. Nunca introduzca contraseñas ni tokens.</span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="cfgSheet">SPREADSHEET_ID</label>
+                <input id="cfgSheet" name="SPREADSHEET_ID" placeholder="1AbC…">
+              </div>
+              <div class="grid grid--form">
+                <div class="field">
+                  <label class="field__label" for="cfgTz">TIMEZONE</label>
+                  <input id="cfgTz" name="TIMEZONE" placeholder="America/Guayaquil">
+                </div>
+                <div class="field">
+                  <label class="field__label" for="cfgLow">LOW_STOCK_THRESHOLD</label>
+                  <input id="cfgLow" name="LOW_STOCK_THRESHOLD" inputmode="numeric" placeholder="5">
+                </div>
+                <div class="field">
+                  <label class="field__label" for="cfgAcc">MAX_ACCEPTABLE_ACCURACY_M</label>
+                  <input id="cfgAcc" name="MAX_ACCEPTABLE_ACCURACY_M" inputmode="numeric" placeholder="100">
+                </div>
+              </div>
+              <label class="inline-check mb-3">
+                <input type="checkbox" name="DEMO_MODE"> DEMO_MODE (forzar modo local de demostración)
+              </label>
+              <div class="row">
+                <button class="btn btn--primary" type="button" data-cfg="save">Guardar en este navegador</button>
+                <button class="btn btn--ghost" type="button" data-cfg="clear">Restablecer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4 hidden" data-cfg="demo">
+        <div class="card__head"><div><div class="card__title">Datos de demostración (modo local)</div>
+          <div class="card__desc">Pueden eliminarse sin afectar al funcionamiento del sistema</div></div></div>
+        <div class="card__body">
+          <div class="row">
+            <button class="btn btn--warn" type="button" data-cfg="reset-demo">Restaurar datos demo</button>
+            <button class="btn btn--danger" type="button" data-cfg="clear-demo">Eliminar datos demo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4" data-tabs>
+        <div class="card__head">
+          <div class="tabs" role="tablist" aria-label="Ayuda">
+            <button class="tab" role="tab" id="tab-start" aria-controls="panel-start" aria-selected="true">Puesta en marcha</button>
+            <button class="tab" role="tab" id="tab-rules" aria-controls="panel-rules" aria-selected="false" tabindex="-1">Reglas del sistema</button>
+            <button class="tab" role="tab" id="tab-limits" aria-controls="panel-limits" aria-selected="false" tabindex="-1">Limitaciones</button>
+          </div>
+        </div>
+        <div class="card__body">
+          <div class="tabpanel txt-sm" id="panel-start" role="tabpanel" aria-labelledby="tab-start">
+            <ol>
+              <li>Cree una hoja de cálculo en Google Sheets (o importe <span class="mono">base-datos/LogiTrace_Base.xlsx</span>).</li>
+              <li>Copie el <b>SPREADSHEET_ID</b> desde la URL de la hoja.</li>
+              <li>Abra <b>Extensiones → Apps Script</b> y pegue el contenido de <span class="mono">apps-script/Code.gs</span>.</li>
+              <li>Ejecute <span class="mono">initializeSheets()</span> una vez y autorice los permisos solicitados.</li>
+              <li>Implemente como <b>Aplicación web</b>: ejecutar como <b>Yo</b>, con acceso para <b>Cualquier persona</b>.</li>
+              <li>Copie la URL <span class="mono">/exec</span> y péguela en <span class="mono">config.runtime.js</span> (o en el formulario anterior).</li>
+              <li>Verifique con <span class="mono">?action=health</span> o con el botón «Probar backend».</li>
+              <li>Publique el frontend en GitHub Pages y compruebe cámara y GPS sobre HTTPS.</li>
+            </ol>
+          </div>
+
+          <div class="tabpanel txt-sm" id="panel-rules" role="tabpanel" aria-labelledby="tab-rules" hidden>
+            <ul>
+              <li><b>Stock inicial:</b> la cantidad de creación no genera un evento de recepción adicional.</li>
+              <li><b>Recepción y devolución</b> suman; <b>despacho</b> resta; nunca se permite stock negativo.</li>
+              <li><b>Ubicación, movimiento interno, preparación e ingreso al almacén</b> no modifican el stock.</li>
+              <li><b>Entrega</b> no vuelve a descontar si ya hubo despacho.</li>
+              <li><b>Incidencia</b> no modifica el inventario automáticamente.</li>
+              <li><b>Validación geográfica:</b> SIN_GPS si no hay coordenadas; BAJA_PRECISION si la precisión supera el umbral; FUERA_GEOCERCA si la distancia excede el radio; OK en caso contrario.</li>
+              <li>Un evento fuera de geocerca <b>se guarda</b>: es evidencia de una anomalía, no un motivo de rechazo.</li>
+              <li>La validación definitiva se ejecuta siempre en Apps Script con <span class="mono">LockService</span>.</li>
+            </ul>
+          </div>
+
+          <div class="tabpanel txt-sm" id="panel-limits" role="tabpanel" aria-labelledby="tab-limits" hidden>
+            <ul>
+              <li>Prototipo académico: no incorpora autenticación de usuarios, roles ni auditoría de seguridad productiva.</li>
+              <li>El RFID es <b>simulado</b>: no existe lectura de etiquetas físicas desde el navegador.</li>
+              <li>Los EAN-13 generados son de uso interno y no representan GTIN asignados por GS1.</li>
+              <li>La distancia geodésica (Haversine) no equivale a distancia vial.</li>
+              <li>Cámara y GPS requieren HTTPS o localhost.</li>
+              <li>Sin conexión no se sincronizan escrituras: el formulario se conserva para reintentar.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Área reservada para impresión de etiquetas -->
+    <div id="printArea" aria-hidden="true"></div>
+  </main>
+</div>
+
+<!-- ================= BIBLIOTECAS (CDN) ================= -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.417.0/dist/umd/lucide.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- ================= CÓDIGO DE LOGITRACE ================= -->
+<script src="assets/js/config.runtime.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/geolocation.js"></script>
+<script src="assets/js/locations.js"></script>
+<script src="assets/js/maps.js"></script>
+<script src="assets/js/rfid.js"></script>
+<script src="assets/js/barcode.js"></script>
+<script src="assets/js/traceability.js"></script>
+<script src="assets/js/events.js"></script>
+<script src="assets/js/scanner.js"></script>
+<script src="assets/js/products.js"></script>
+<script src="assets/js/inventory.js"></script>
+<script src="assets/js/geojson.js"></script>
+<script src="assets/js/dashboard.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
